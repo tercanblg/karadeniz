@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "585128588445",
+    "project_id": "karadeniz2-77e9c",
+    "storage_bucket": "karadeniz2-77e9c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:585128588445:android:7e6151ea6e6eab832fd074",
+        "android_client_info": {
+          "package_name": "com.example.karadeniz10"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSjiCc1uoUSOKmMG0B_ag2C-7rN7w6RK8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
