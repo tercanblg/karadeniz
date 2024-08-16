@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'dart:async';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -14,55 +17,108 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      debugShowCheckedModeBanner: false,  // Correctly placed inside MaterialApp
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Region Cards'),
-        ),
-        body: const RegionsList(),
+      home: SplashScreen(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Timer(Duration(seconds: 3), () {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => RegionsList()),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Image.asset('assets/splash.png'), // Your splash screen image
       ),
     );
   }
 }
 
 class RegionsList extends StatelessWidget {
-  const RegionsList({super.key});
+  final DatabaseReference _databaseReference = FirebaseDatabase.instance.reference().child('regions');
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(8.0),
-      itemCount: 21, // Number of regions
-      itemBuilder: (context, index) {
-        final imageIndex = index + 1;
-        return RegionCard(
-          imagePath: 'assets/1 ($imageIndex).jpg', // Images named as 1 (1).jpg, 1 (2).jpg, etc.
-          regionName: 'KPS ${imageIndex} Gökhan Bey', // Naming convention based on the provided example
-          lastUpdate: index % 2 == 0, // Alternating true/false for demonstration
-        );
-      },
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Region Cards'),
+      ),
+      body: StreamBuilder(
+        stream: _databaseReference.onValue,
+        builder: (context, snapshot) {
+          if (snapshot.hasData && !snapshot.hasError && snapshot.data?.snapshot.value != null) {
+            Object? data = snapshot.data!.snapshot.value;
+            List regions = data!.values.toList();
+            return ListView.builder(
+              padding: const EdgeInsets.all(8.0),
+              itemCount: regions.length,
+              itemBuilder: (context, index) {
+                final region = regions[index];
+                final bool lastUpdate = DateTime.now().difference(DateTime.parse(region['lastUpdate'])).inDays < 7;
+
+                return RegionCard(
+                  imagePath: region['imagePath'],
+                  regionName: region['regionName'],
+                  gross: region['gross'],
+                  net: region['net'],
+                  workingEngines: region['workingEngines'],
+                  lastUpdate: region['lastUpdate'],
+                );
+              },
+            );
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else {
+            return Center(child: CircularProgressIndicator());
+          }
+        },
+      ),
     );
   }
+}
+
+extension on Object {
+  get values => null;
 }
 
 class RegionCard extends StatelessWidget {
   final String imagePath;
   final String regionName;
-  final bool lastUpdate;
+  final int gross;
+  final int net;
+  final int workingEngines;
+  final String lastUpdate;
 
-  const RegionCard({
-    Key? key,
+  RegionCard({
     required this.imagePath,
     required this.regionName,
+    required this.gross,
+    required this.net,
+    required this.workingEngines,
     required this.lastUpdate,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: Colors.green, width: 2), // Green border
+        side: BorderSide(color: Colors.green, width: 2),
       ),
       margin: const EdgeInsets.symmetric(vertical: 10.0),
       elevation: 4,
@@ -70,7 +126,7 @@ class RegionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            height: 150, // Adjust the height as necessary
+            height: 150,
             decoration: BoxDecoration(
               image: DecorationImage(
                 image: AssetImage(imagePath),
@@ -101,20 +157,20 @@ class RegionCard extends StatelessWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text('Gross'),
-                          Text('Net'),
-                          Text('Working Engines'),
+                        children: [
+                          Text('Gross: $gross'),
+                          Text('Net: $net'),
+                          Text('Working Engines: $workingEngines'),
                         ],
                       ),
                     ),
                     Align(
                       alignment: Alignment.bottomRight,
                       child: Text(
-                        lastUpdate ? 'Updated Recently' : 'Update Needed',
+                        'Last Update: $lastUpdate',
                         style: TextStyle(
                           fontSize: 12,
-                          color: lastUpdate ? Colors.green : Colors.red,
+                          color: Colors.grey,
                         ),
                       ),
                     ),
